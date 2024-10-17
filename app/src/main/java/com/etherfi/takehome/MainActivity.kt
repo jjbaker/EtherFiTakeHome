@@ -14,8 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.etherfi.takehome.ui.theme.EtherFiTakeHomeTheme
-import com.walletconnect.web3.wallet.client.Wallet
-import com.walletconnect.web3.wallet.client.Web3Wallet
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,7 +23,7 @@ class MainActivity : ComponentActivity() {
             EtherFiTakeHomeTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Button(
-                        onClick = { testPairing() },
+                        onClick = {  },
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         Text("Test Pairing")
@@ -35,18 +33,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun testPairing() {
-        val url = ""
-        val pair = Wallet.Params.Pair(url)
-
-        Web3Wallet.pair(
-            pair,
-            onSuccess = { Log.e("%%%%%", "Paired Successfully") }
-        ) { error ->
-            Log.e("%%%%%", "Pairing Error ${error.throwable}$ {error.throwable.message}")
-
-        }
-    }
 }
 
 

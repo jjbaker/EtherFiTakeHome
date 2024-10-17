@@ -2,12 +2,14 @@ package com.etherfi.takehome
 
 import android.app.Application
 import android.util.Log
-import com.etherfi.takehome.model.WalletDelegate
-import com.walletconnect.android.Core
-import com.walletconnect.android.CoreClient
-import com.walletconnect.android.relay.ConnectionType
-import com.walletconnect.web3.wallet.client.Wallet
-import com.walletconnect.web3.wallet.client.Web3Wallet
+import com.etherfi.takehome.model.AKModalDelegate
+import com.reown.android.Core
+import com.reown.android.CoreClient
+import com.reown.android.relay.ConnectionType
+import com.reown.appkit.client.AppKit
+import com.reown.appkit.client.Modal
+import com.reown.appkit.presets.AppKitChainsPresets.ethToken
+import com.reown.appkit.utils.EthUtils
 
 class TakeHomeApp: Application() {
 
@@ -18,11 +20,11 @@ class TakeHomeApp: Application() {
             val projectId = BuildConfig.WALLET_CONNECT_API_KEY
             val connectionType = ConnectionType.AUTOMATIC
             val appMetaData = Core.Model.AppMetaData(
-                name = "Wallet Connect Take Home",
+                name = "EtherFi Take Home",
                 description = "App to test WalletConnect",
                 url = "obviouslyfakeurl.com",
                 icons = listOf("https://gblobscdn.gitbook.com/spaces%2F-LJJeCjcLrr53DcT1Ml7%2Favatar.png?alt=media"),
-                redirect = "kotlin-wallet-wc:/request" // Custom Redirect URI
+                redirect = "test-app:/request" // Custom Redirect URI
             )
 
             CoreClient.initialize(
@@ -33,17 +35,28 @@ class TakeHomeApp: Application() {
                 onError = {error -> Log.e("%%%%%", "CoreClientError ${error.throwable}")}
             )
 
-            val initParams = Wallet.Params.Init(core = CoreClient)
 
-            Web3Wallet.initialize(
-                initParams,
+            AppKit.initialize(
+                init = Modal.Params.Init(CoreClient),
                 onSuccess = {
-                    Log.e("%%%%%","Initialization Success")
-                    Web3Wallet.setWalletDelegate(WalletDelegate())
-                }
-            ) { error ->
-                Log.e("%%%%%","Initialization error ${error.throwable}")
-            }
+                    Log.e("%%%%%", "AppKit Initialization Success")
+                    AppKit.setChains(
+                        listOf(
+                            Modal.Model.Chain(
+                                chainName = "Ethereum",
+                                chainNamespace = "eip155",
+                                chainReference = "1",
+                                requiredMethods = listOf("personal_sign"),
+                                optionalMethods = emptyList(),
+                                events = EthUtils.ethEvents,
+                                token = ethToken
+                            )
+                        )
+                    )
+                    AppKit.setDelegate(AKModalDelegate)
+                },
+                onError = { Log.e("%%%%%", "AppKiy Initialization Error ${it.throwable}") }
+            )
         }
     }
 }

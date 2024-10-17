@@ -71,7 +71,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation(platform("com.walletconnect:android-bom:1.35.2"))
-    implementation("com.walletconnect:android-core")
-    implementation("com.walletconnect:web3wallet")
+    implementation(platform("com.reown:android-bom:1.0.0"))
+    implementation("com.reown:android-core")
+    implementation("com.reown:appkit")
 }
