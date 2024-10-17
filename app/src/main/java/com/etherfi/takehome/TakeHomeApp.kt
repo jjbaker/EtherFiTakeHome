@@ -13,8 +13,6 @@ import com.reown.appkit.utils.EthUtils
 
 class TakeHomeApp: Application() {
 
-    class TakeHomeApp: Application() {
-
         override fun onCreate() {
             super.onCreate()
             val projectId = BuildConfig.WALLET_CONNECT_API_KEY
@@ -58,5 +56,4 @@ class TakeHomeApp: Application() {
                 onError = { Log.e("%%%%%", "AppKiy Initialization Error ${it.throwable}") }
             )
         }
-    }
 }
