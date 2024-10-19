@@ -27,8 +27,10 @@ import androidx.compose.ui.Modifier
 import com.etherfi.takehome.ui.theme.EtherFiTakeHomeTheme
 import com.reown.appkit.client.AppKit
 import com.reown.appkit.ui.components.internal.AppKitComponent
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
