@@ -1,5 +1,9 @@
 package com.etherfi.takehome
 
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -15,12 +19,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,9 +61,35 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show()
         }
 
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
+            .build()
+        val networkAvailable: MutableState<Boolean> = mutableStateOf(false)
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            // network is available for use
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                networkAvailable.value = true
+            }
+
+            // lost network connection
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                networkAvailable.value = false
+
+            }
+        }
+
+        val connectivityManager =
+            getSystemService(ConnectivityManager::class.java) as ConnectivityManager
+        connectivityManager.requestNetwork(networkRequest, networkCallback)
+
         enableEdgeToEdge()
         setContent {
             val state by walletConnectViewModel.walletStateFlow.collectAsState()
+            val network by networkAvailable
             EtherFiTakeHomeTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(
@@ -67,6 +99,9 @@ class MainActivity : ComponentActivity() {
                             .fillMaxWidth()
                     ) {
                         Text(text = "EtherFi Take Home App", style = Typography.titleLarge)
+                        if (!networkAvailable.value) {
+                            Text("No Internet Connection")
+                        }
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -77,16 +112,20 @@ class MainActivity : ComponentActivity() {
                     ) {
                         when (state) {
                             WalletState.NoConnection -> NoWalletConnectionScreen(
-                                walletConnectViewModel::checkWalletStatus
+                                walletConnectViewModel::checkWalletStatus,
+                                networkAvailable.value
                             )
 
                             WalletState.Connected -> WalletConnectedScreen(
-                                walletConnectViewModel::authorizeWallet ,
-                                walletConnectViewModel::disconnectWallet
+                                walletConnectViewModel::authorizeWallet,
+                                walletConnectViewModel::disconnectWallet,
+                                networkAvailable.value
                             )
+
                             is WalletState.Authorized -> WalletAuthorizedScreen(
                                 (state as WalletState.Authorized).account,
-                                walletConnectViewModel::disconnectWallet
+                                walletConnectViewModel::disconnectWallet,
+                                networkAvailable.value
                             )
                         }
                     }
@@ -98,15 +137,16 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun NoWalletConnectionScreen(checkConnectionStatus: () -> Unit) {
+    fun NoWalletConnectionScreen(checkConnectionStatus: () -> Unit, hasNetwork: Boolean) {
         var showAppKitModalBottomSheet by remember { mutableStateOf(false) }
         val modalSheetState =
             rememberModalBottomSheetState(skipPartiallyExpanded = true)
         val scope = rememberCoroutineScope()
 
-        TakeHomeButton(
+        NetworkReliantButton(
             text = "Connect to Wallet",
-            onClick = { showAppKitModalBottomSheet = true }
+            onClick = { showAppKitModalBottomSheet = true },
+            hasNetworkConnection = hasNetwork
         )
 
 
@@ -131,7 +171,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun WalletConnectedScreen(authorize: ()->Unit, disconnect: ()->Unit) {
+    fun WalletConnectedScreen(authorize: () -> Unit, disconnect: () -> Unit, hasNetwork: Boolean) {
         Text(
             text = "Wallet Connected",
             style = Typography.bodyLarge
@@ -140,18 +180,20 @@ class MainActivity : ComponentActivity() {
             text = "EitherFi App must be authorized before continuing",
             style = Typography.bodyMedium
         )
-        TakeHomeButton(
+        NetworkReliantButton(
             text = "Authorize EtherFi App",
-            onClick = { authorize() }
+            onClick = { authorize() },
+            hasNetworkConnection = hasNetwork
         )
-        TakeHomeButton(
+        NetworkReliantButton(
             text = "Disconnect Wallet",
-            onClick = { disconnect() }
+            onClick = { disconnect() },
+            hasNetworkConnection = hasNetwork
         )
     }
 
     @Composable
-    fun WalletAuthorizedScreen(account: String, disconnect: () -> Unit){
+    fun WalletAuthorizedScreen(account: String, disconnect: () -> Unit, hasNetwork: Boolean) {
         Text(
             text = "Account Number",
             style = Typography.bodyLarge
@@ -161,20 +203,34 @@ class MainActivity : ComponentActivity() {
             overflow = TextOverflow.Ellipsis,
             style = Typography.bodySmall
         )
-        Button(onClick = { disconnect() }) {
-            Text(
-                text = "Disconnect Wallet",
-                style = Typography.bodyLarge,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
+        NetworkReliantButton(
+            onClick = { disconnect() },
+            text = "Disconnect Wallet",
+            hasNetworkConnection = hasNetwork
+        )
     }
 
+
     @Composable
-    fun TakeHomeButton(text: String, onClick: () -> Unit) {
+    fun NetworkReliantButton(
+        text: String,
+        onClick: () -> Unit,
+        hasNetworkConnection: Boolean = true,
+        noNetworkOnClick: () -> Unit = { Toast.makeText(this, "No network connection", Toast.LENGTH_SHORT).show()}
+    ) {
         Button(
-            onClick = { onClick() },
-            modifier = Modifier.padding(10.dp)
+            onClick = { if (hasNetworkConnection) onClick() else noNetworkOnClick() },
+            modifier = Modifier.padding(10.dp),
+            colors = if (hasNetworkConnection) {
+                ButtonDefaults.buttonColors()
+            } else {
+                with(ButtonDefaults.buttonColors()) {
+                    ButtonDefaults.buttonColors(
+                        containerColor = disabledContainerColor,
+                        contentColor = disabledContentColor
+                    )
+                }
+            }
         ) {
             Text(
                 text = text,

@@ -59,7 +59,8 @@ class WalletConnectViewModel @Inject constructor(
                         }
 
                     }
-
+                    is Modal.Model.ExpiredProposal,
+                    is Modal.Model.ExpiredRequest -> _userMsgLiveData.postValue("Request expired. Try again later.")
                     else -> {
                         Log.e("%%%%%%%", model?.javaClass?.simpleName ?: "No action taken")
                     }
