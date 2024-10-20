@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.etherfi.takehome.model.AppKitDelegate
 import com.etherfi.takehome.model.AuthorizationRepo
+import com.etherfi.takehome.model.SharedPrefsRepo
 import com.etherfi.takehome.model.di.ApplicationScope
 import com.reown.appkit.client.AppKit
 import com.reown.appkit.client.Modal
@@ -20,6 +21,7 @@ import javax.inject.Inject
 class WalletConnectViewModel @Inject constructor(
     private val appKitDelegate: AppKitDelegate,
     private val authorizationRepo: AuthorizationRepo,
+    private val sharedPrefsRepo: SharedPrefsRepo,
     @ApplicationScope private val externalScope: CoroutineScope
 ) : ViewModel() {
 
@@ -36,14 +38,15 @@ class WalletConnectViewModel @Inject constructor(
             appKitDelegate.delegateSharedFlow.collect { model ->
                 when (model) {
                     is Modal.Model.SessionRequestResponse -> {
-                        when(model.result){
+                        when (model.result) {
                             is Modal.Model.JsonRpcResponse.JsonRpcResult -> {
-                                _walletStateFlow.value = WalletState.Authorized("")
+                                setAuthorized()
                             }
+
                             is Modal.Model.JsonRpcResponse.JsonRpcError -> {
                                 AppKit.disconnect(
                                     onSuccess = {
-                                        _walletStateFlow.value = WalletState.NoConnection
+                                        setNoConnection()
                                         _userMsgLiveData.postValue("Authorization Denied. Wallet Disconnected")
                                     },
                                     onError = { throwable: Throwable ->
@@ -56,23 +59,33 @@ class WalletConnectViewModel @Inject constructor(
                         }
 
                     }
-                    else -> { Log.e("%%%%%%%", model?.javaClass?.simpleName ?: "No Model")}
+
+                    else -> {
+                        Log.e("%%%%%%%", model?.javaClass?.simpleName ?: "No action taken")
+                    }
                 }
             }
         }
     }
 
     fun checkWalletStatus() {
+        val account = AppKit.getAccount()
+        if (account == null) {
+            setNoConnection()
+        } else {
+            _walletStateFlow.value = if (sharedPrefsRepo.isAuthorized()) {
+                WalletState.Authorized(account.address)
+            } else {
+                WalletState.Connected
+            }
 
-        _walletStateFlow.value = AppKit.getAccount()?.let {
-            WalletState.Connected
-        } ?: WalletState.NoConnection
+        }
     }
 
     fun disconnectWallet() {
         AppKit.disconnect(
             onSuccess = {
-                _walletStateFlow.value = WalletState.NoConnection
+                setNoConnection()
                 _userMsgLiveData.postValue("Wallet Disconnected")
             },
             onError = { throwable ->
@@ -84,10 +97,19 @@ class WalletConnectViewModel @Inject constructor(
     fun authorizeWallet() {
         externalScope.launch {
             authorizationRepo.sendAuthorizationRequest(
-                onSendFailure = {error ->_userMsgLiveData.postValue(error) }
+                onSendFailure = { error -> _userMsgLiveData.postValue(error) }
             )
         }
     }
 
 
+    fun setAuthorized() {
+        sharedPrefsRepo.setAuthorization(true)
+        checkWalletStatus()
+    }
+
+    fun setNoConnection() {
+        _walletStateFlow.value = WalletState.NoConnection
+        sharedPrefsRepo.setAuthorization(false)
+    }
 }

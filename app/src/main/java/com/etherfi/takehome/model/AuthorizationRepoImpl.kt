@@ -1,6 +1,5 @@
 package com.etherfi.takehome.model
 
-import android.util.Log
 import com.etherfi.takehome.TakeHomeApp
 import com.reown.android.internal.common.signing.cacao.Cacao
 import com.reown.appkit.client.AppKit
@@ -11,8 +10,9 @@ import com.reown.sign.client.SignClient
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.UUID
+import javax.inject.Inject
 
-class AuthorizationRepoImpl: AuthorizationRepo {
+class AuthorizationRepoImpl @Inject constructor(): AuthorizationRepo {
 
     override suspend fun sendAuthorizationRequest(
         onSendFailure: (String) -> Unit
