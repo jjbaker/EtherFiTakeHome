@@ -6,6 +6,7 @@ import com.reown.appkit.client.AppKit
 import com.reown.appkit.client.Modal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,8 +17,8 @@ class AppKitDelegate @Inject constructor(
     @ApplicationScope private val scope: CoroutineScope
 ) : AppKit.ModalDelegate {
 
-    private val _modalDelegateSharedFlow: MutableSharedFlow<Modal.Model?> = MutableSharedFlow()
-    val modalDelegateSharedFlow = _modalDelegateSharedFlow.asSharedFlow()
+    private val _delegateSharedFlow: MutableSharedFlow<Modal.Model?> = MutableSharedFlow()
+    val delegateSharedFlow: SharedFlow<Modal.Model?> = _delegateSharedFlow.asSharedFlow()
 
 
     //OPTIONAL OVERRIDES
@@ -97,7 +98,7 @@ class AppKitDelegate @Inject constructor(
 
     private fun Modal.Model.updateSharedFlow() {
         scope.launch {
-            _modalDelegateSharedFlow.emit(this@updateSharedFlow)
+            _delegateSharedFlow.emit(this@updateSharedFlow)
         }
     }
 }

@@ -29,6 +29,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.etherfi.takehome.ui.theme.EtherFiTakeHomeTheme
 import com.etherfi.takehome.ui.theme.Typography
@@ -80,10 +81,13 @@ class MainActivity : ComponentActivity() {
                             )
 
                             WalletState.Connected -> WalletConnectedScreen(
-                                { } ,
+                                walletConnectViewModel::authorizeWallet ,
                                 walletConnectViewModel::disconnectWallet
                             )
-                            is WalletState.Authorized -> TODO()
+                            is WalletState.Authorized -> WalletAuthorizedScreen(
+                                (state as WalletState.Authorized).account,
+                                walletConnectViewModel::disconnectWallet
+                            )
                         }
                     }
                 }
@@ -144,6 +148,26 @@ class MainActivity : ComponentActivity() {
             text = "Disconnect Wallet",
             onClick = { disconnect() }
         )
+    }
+
+    @Composable
+    fun WalletAuthorizedScreen(account: String, disconnect: () -> Unit){
+        Text(
+            text = "Account Number",
+            style = Typography.bodyLarge
+        )
+        Text(
+            text = account,
+            overflow = TextOverflow.Ellipsis,
+            style = Typography.bodySmall
+        )
+        Button(onClick = { disconnect() }) {
+            Text(
+                text = "Disconnect Wallet",
+                style = Typography.bodyLarge,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
     }
 
     @Composable

@@ -23,11 +23,11 @@ class TakeHomeApp : Application() {
         val projectId = BuildConfig.WALLET_CONNECT_API_KEY
         val connectionType = ConnectionType.AUTOMATIC
         val appMetaData = Core.Model.AppMetaData(
-            name = "EtherFi Take Home",
-            description = "App to test WalletConnect",
-            url = "obviouslyfakeurl.com",
+            name = APP_NAME,
+            description = APP_DESCRIPTION,
+            url = APP_URL,
             icons = listOf("https://gblobscdn.gitbook.com/spaces%2F-LJJeCjcLrr53DcT1Ml7%2Favatar.png?alt=media"),
-            redirect = "test-app:/request" // Custom Redirect URI
+            redirect = APP_REDIRECT
         )
 
         CoreClient.initialize(
@@ -60,5 +60,12 @@ class TakeHomeApp : Application() {
             },
             onError = { Log.e("%%%%%", "AppKiy Initialization Error ${it.throwable}") }
         )
+    }
+
+    companion object {
+        const val APP_NAME = "EtherFi Take Home"
+        const val APP_DESCRIPTION = "App to test WalletConnect"
+        const val APP_URL = "obviouslyfakeurl.com"
+        const val APP_REDIRECT = "test-app:/request"
     }
 }
