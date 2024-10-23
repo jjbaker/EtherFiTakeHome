@@ -1,6 +1,7 @@
-package com.etherfi.takehome.model
+package com.etherfi.takehome.model.impl
 
 import android.content.SharedPreferences
+import com.etherfi.takehome.model.SharedPrefsRepo
 import javax.inject.Inject
 
 class SharedPrefsRepoImpl @Inject constructor(

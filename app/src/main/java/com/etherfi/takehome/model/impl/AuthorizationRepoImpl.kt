@@ -1,6 +1,7 @@
-package com.etherfi.takehome.model
+package com.etherfi.takehome.model.impl
 
 import com.etherfi.takehome.TakeHomeApp
+import com.etherfi.takehome.model.AuthorizationRepo
 import com.reown.android.internal.common.signing.cacao.Cacao
 import com.reown.appkit.client.AppKit
 import com.reown.appkit.client.Modal

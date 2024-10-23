@@ -3,9 +3,9 @@ package com.etherfi.takehome.model.di
 import android.content.Context
 import android.content.SharedPreferences
 import com.etherfi.takehome.model.AuthorizationRepo
-import com.etherfi.takehome.model.AuthorizationRepoImpl
+import com.etherfi.takehome.model.impl.AuthorizationRepoImpl
 import com.etherfi.takehome.model.SharedPrefsRepo
-import com.etherfi.takehome.model.SharedPrefsRepoImpl
+import com.etherfi.takehome.model.impl.SharedPrefsRepoImpl
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

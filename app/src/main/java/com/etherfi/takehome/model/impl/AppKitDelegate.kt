@@ -1,5 +1,6 @@
-package com.etherfi.takehome.model
+package com.etherfi.takehome.model.impl
 
+import android.annotation.SuppressLint
 import android.util.Log
 import com.etherfi.takehome.model.di.ApplicationScope
 import com.reown.appkit.client.AppKit
@@ -13,6 +14,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+@SuppressLint("LogNotTimber")
 class AppKitDelegate @Inject constructor(
     @ApplicationScope private val scope: CoroutineScope
 ) : AppKit.ModalDelegate {

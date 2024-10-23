@@ -2,7 +2,7 @@ package com.etherfi.takehome
 
 import android.app.Application
 import android.util.Log
-import com.etherfi.takehome.model.AppKitDelegate
+import com.etherfi.takehome.model.impl.AppKitDelegate
 import com.reown.android.Core
 import com.reown.android.CoreClient
 import com.reown.android.relay.ConnectionType

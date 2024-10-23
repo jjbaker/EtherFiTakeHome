@@ -4,16 +4,18 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.etherfi.takehome.model.AppKitDelegate
+import androidx.lifecycle.viewModelScope
+import com.etherfi.takehome.model.impl.AppKitDelegate
 import com.etherfi.takehome.model.AuthorizationRepo
 import com.etherfi.takehome.model.SharedPrefsRepo
-import com.etherfi.takehome.model.di.ApplicationScope
+import com.etherfi.takehome.model.di.IoDispatcher
 import com.reown.appkit.client.AppKit
 import com.reown.appkit.client.Modal
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,87 +24,58 @@ class WalletConnectViewModel @Inject constructor(
     private val appKitDelegate: AppKitDelegate,
     private val authorizationRepo: AuthorizationRepo,
     private val sharedPrefsRepo: SharedPrefsRepo,
-    @ApplicationScope private val externalScope: CoroutineScope
+    @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
-    private val _walletStateFlow: MutableStateFlow<WalletState> =
-        MutableStateFlow(WalletState.NoConnection)
-    val walletStateFlow: StateFlow<WalletState> get() = _walletStateFlow
+    private val _screenState: MutableStateFlow<ScreenState> =
+        MutableStateFlow(ScreenState())
+    val screenState: StateFlow<ScreenState> get() = _screenState
 
     private val _userMsgLiveData: MutableLiveData<String> = MutableLiveData()
     val userMsgLiveData: LiveData<String> get() = _userMsgLiveData
 
     init {
         checkWalletStatus()
-        externalScope.launch {
-            appKitDelegate.delegateSharedFlow.collect { model ->
-                when (model) {
-                    is Modal.Model.SessionRequestResponse -> {
-                        when (model.result) {
-                            is Modal.Model.JsonRpcResponse.JsonRpcResult -> {
-                                setAuthorized()
-                            }
+        setupAppKitDelegateListener()
+    }
 
-                            is Modal.Model.JsonRpcResponse.JsonRpcError -> {
-                                AppKit.disconnect(
-                                    onSuccess = {
-                                        setNoConnection()
-                                        _userMsgLiveData.postValue("Authorization Denied. Wallet Disconnected")
-                                    },
-                                    onError = { throwable: Throwable ->
-                                        _userMsgLiveData.postValue(
-                                            "Authorization Denied. Unable to disconnect at this time. Try again later."
-                                        )
-                                    }
-                                )
-                            }
+    fun checkWalletStatus() {
+        viewModelScope.launch(dispatcher) {
+            val account = AppKit.getAccount()
+            if (account == null) {
+                setNoConnection()
+            } else {
+                _screenState.update {
+                    it.copy(
+                        walletState = if (sharedPrefsRepo.isAuthorized()) {
+                            WalletState.Authorized(account.address)
+                        } else {
+                            WalletState.Connected
                         }
-
-                    }
-                    is Modal.Model.ExpiredProposal,
-                    is Modal.Model.ExpiredRequest -> _userMsgLiveData.postValue("Request expired. Try again later.")
-                    else -> {
-                        Log.e("%%%%%%%", model?.javaClass?.simpleName ?: "No action taken")
-                    }
+                    )
                 }
             }
         }
     }
 
-    fun checkWalletStatus() {
-        val account = AppKit.getAccount()
-        if (account == null) {
-            setNoConnection()
-        } else {
-            _walletStateFlow.value = if (sharedPrefsRepo.isAuthorized()) {
-                WalletState.Authorized(account.address)
-            } else {
-                WalletState.Connected
-            }
-
-        }
-    }
-
     fun disconnectWallet() {
-        AppKit.disconnect(
-            onSuccess = {
-                setNoConnection()
-                _userMsgLiveData.postValue("Wallet Disconnected")
-            },
-            onError = { throwable ->
-                _userMsgLiveData.postValue("Error occurred when attempting to disconnect. Try again later. ${throwable.message ?: ""}")
-            }
+        disconnect(
+            successMsg = "Wallet Disconnected",
+            errorMsg = "Error occurred when attempting to disconnect. Try again later."
         )
     }
 
     fun authorizeWallet() {
-        externalScope.launch {
+        _screenState.update { it.copy(isAuthorizing = true) }
+        viewModelScope.launch(dispatcher) {
             authorizationRepo.sendAuthorizationRequest(
-                onSendFailure = { error -> _userMsgLiveData.postValue(error) }
+                onSendFailure = { error ->
+                    _userMsgLiveData.postValue(error)
+                    _screenState.update { it.copy(isAuthorizing = false) }
+                }
             )
         }
     }
-
 
     fun setAuthorized() {
         sharedPrefsRepo.setAuthorization(true)
@@ -110,7 +83,62 @@ class WalletConnectViewModel @Inject constructor(
     }
 
     fun setNoConnection() {
-        _walletStateFlow.value = WalletState.NoConnection
+        _screenState.update { ScreenState() }
         sharedPrefsRepo.setAuthorization(false)
+    }
+
+    private fun disconnect(successMsg: String, errorMsg: String) {
+        _screenState.update { it.copy(isDisconnecting = true) }
+        AppKit.disconnect(
+            onSuccess = {
+                _screenState.update { it.copy(isDisconnecting = false) }
+                setNoConnection()
+                _userMsgLiveData.postValue(successMsg)
+
+            },
+            onError = { throwable ->
+                _screenState.update { it.copy(isDisconnecting = false) }
+                _userMsgLiveData.postValue("$errorMsg ${throwable.message ?: ""}")
+            }
+        )
+    }
+
+    private fun setupAppKitDelegateListener(){
+        viewModelScope.launch(dispatcher) {
+            appKitDelegate.delegateSharedFlow.collect { model ->
+                when (model) {
+                    is Modal.Model.SessionRequestResponse -> {
+                        when (model.result) {
+                            is Modal.Model.JsonRpcResponse.JsonRpcResult -> {
+                                setAuthorized()
+                                _screenState.update { it.copy(isAuthorizing = false) }
+                            }
+
+                            is Modal.Model.JsonRpcResponse.JsonRpcError -> {
+                                disconnect(
+                                    successMsg = "Authorization Denied. Wallet Disconnected",
+                                    errorMsg = "Authorization Denied. Unable to disconnect at this time. Try again later."
+                                )
+                                _screenState.update { it.copy(isAuthorizing = false) }
+                            }
+                        }
+
+                    }
+
+                    is Modal.Model.ExpiredProposal,
+                    is Modal.Model.ExpiredRequest -> {
+                        _userMsgLiveData.postValue("Request expired. Try again later.")
+                        _screenState.update { it.copy(isAuthorizing = false) }
+                    }
+
+                    else -> {
+                        Log.e(
+                            "%%%%%%%",
+                            "Unhandled Event: ${model?.javaClass?.simpleName ?: "No action taken"}"
+                        )
+                    }
+                }
+            }
+        }
     }
 }
