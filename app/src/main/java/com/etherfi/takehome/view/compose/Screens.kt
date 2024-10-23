@@ -28,11 +28,13 @@ fun NoWalletConnectionScreen(checkConnectionStatus: () -> Unit, hasNetwork: Bool
     val modalSheetState =
         rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     EnabledDisabledButton(
         text = "Connect to Wallet",
         onClick = { showAppKitModalBottomSheet = true },
-        isEnabled = hasNetwork
+        isEnabled = hasNetwork,
+        isDisabledClick = { Toast.makeText(context, "No network connection", Toast.LENGTH_SHORT).show() }
     )
 
 
