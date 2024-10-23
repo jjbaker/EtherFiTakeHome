@@ -1,10 +1,13 @@
 package com.etherfi.takehome.view.compose
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,7 +23,8 @@ fun EnabledDisabledButtonWithSpinner(
     isDisabledClick: () -> Unit = {},
     isSpinning: Boolean = false
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+
+    Box (contentAlignment = Alignment.Center) {
         EnabledDisabledButton(
             text = text,
             onClick = onClick,
@@ -40,24 +44,24 @@ fun EnabledDisabledButton(
     isEnabled: Boolean = true,
     isDisabledClick: () -> Unit = {}
 ) {
-    Button(
-        onClick = { if (isEnabled) onClick() else isDisabledClick() },
-        modifier = Modifier.padding(10.dp),
-        colors = if (isEnabled) {
-            ButtonDefaults.buttonColors()
-        } else {
-            with(ButtonDefaults.buttonColors()) {
-                ButtonDefaults.buttonColors(
-                    containerColor = disabledContainerColor,
-                    contentColor = disabledContentColor
-                )
+        Button(
+            onClick = { if (isEnabled) onClick() else isDisabledClick() },
+            modifier = Modifier.padding(10.dp).fillMaxWidth(),
+            colors = if (isEnabled) {
+                ButtonDefaults.buttonColors()
+            } else {
+                with(ButtonDefaults.buttonColors()) {
+                    ButtonDefaults.buttonColors(
+                        containerColor = disabledContainerColor,
+                        contentColor = disabledContentColor
+                    )
+                }
             }
+        ) {
+            Text(
+                text = text,
+                style = Typography.bodyLarge,
+                modifier = Modifier.padding(8.dp)
+            )
         }
-    ) {
-        Text(
-            text = text,
-            style = Typography.bodyLarge,
-            modifier = Modifier.padding(8.dp)
-        )
-    }
 }

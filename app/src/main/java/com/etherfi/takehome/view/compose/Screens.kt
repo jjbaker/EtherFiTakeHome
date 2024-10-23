@@ -1,6 +1,7 @@
 package com.etherfi.takehome.view.compose
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -75,30 +76,31 @@ fun WalletConnectedScreen(
         text = "EitherFi App must be authorized before continuing",
         style = Typography.bodyMedium
     )
+    Column() {
+        EnabledDisabledButtonWithSpinner(
+            text = "Authorize EtherFi App",
+            onClick = { authorize() },
+            isEnabled = hasNetwork && !isAuth,
+            isDisabledClick = if (!hasNetwork) {
+                { Toast.makeText(context, "No network connection", Toast.LENGTH_SHORT).show() }
+            } else {
+                { Toast.makeText(context, "Auth in Prog", Toast.LENGTH_SHORT).show() }
+            },
+            isSpinning = hasNetwork && isAuth
+        )
 
-    EnabledDisabledButtonWithSpinner(
-        text = "Authorize EtherFi App",
-        onClick = { authorize() },
-        isEnabled = hasNetwork && !isAuth,
-        isDisabledClick = if (!hasNetwork) {
-            { Toast.makeText(context, "No network connection", Toast.LENGTH_SHORT).show() }
-        } else {
-            { Toast.makeText(context, "Auth in Prog", Toast.LENGTH_SHORT).show() }
-        },
-        isSpinning = hasNetwork && isAuth
-    )
-
-    EnabledDisabledButtonWithSpinner(
-        text = "Disconnect Wallet",
-        onClick = { disconnect() },
-        isEnabled = hasNetwork && !isDisconnect,
-        isDisabledClick = if (!hasNetwork) {
-            { Toast.makeText(context, "No network connection", Toast.LENGTH_SHORT).show() }
-        } else {
-            { Toast.makeText(context, "Disconnect in Prog", Toast.LENGTH_SHORT).show() }
-        },
-        isSpinning = hasNetwork && isDisconnect
-    )
+        EnabledDisabledButtonWithSpinner(
+            text = "Disconnect Wallet",
+            onClick = { disconnect() },
+            isEnabled = hasNetwork && !isDisconnect,
+            isDisabledClick = if (!hasNetwork) {
+                { Toast.makeText(context, "No network connection", Toast.LENGTH_SHORT).show() }
+            } else {
+                { Toast.makeText(context, "Disconnect in Prog", Toast.LENGTH_SHORT).show() }
+            },
+            isSpinning = hasNetwork && isDisconnect
+        )
+    }
 }
 
 @Composable
